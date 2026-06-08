@@ -5,7 +5,7 @@
 ## Features
 - **Random Discovery**: Instantly fetch and display random space imagery from the NASA Astronomy Picture of the Day (APOD) API.
 - **Curated Galleries**: Browse categorized collections of Constellations, Galaxies, Nebulae, and Planets using the NASA Images API.
-- **Anonymous Community**: A discussion section where anyone can share thoughts about the cosmos — no accounts needed. Each post gets a randomly generated space-themed alias (e.g. *Cosmic Voyager*, *Stellar Pulsar*) and a unique colored avatar. Filter conversations by topic (APOD, Galaxies, Nebulae, Planets, Stars, Questions).
+- **Anonymous Community** *(Planned)*: A discussion section where anyone can share thoughts about the cosmos — no accounts needed. Each post will get a randomly generated space-themed alias (e.g. *Cosmic Voyager*, *Stellar Pulsar*) and a unique colored avatar, with conversations filterable by topic.
 - **Editorial UI/UX**: A highly refined, custom-built interface featuring high-contrast black/white layouts, delicate dotted borders, and beautiful serif typography (`Playfair Display`).
 - **Resilient Backend Architecture**: The Express server implements an intelligent **Database Fallback System**. Every successfully fetched NASA image is quietly archived in a Supabase PostgreSQL database. If the NASA API times out or fails during high traffic, the app seamlessly falls back to querying the local database, ensuring 100% uptime.
 - **Server-Side Caching**: Implements an in-memory TTL caching layer to dramatically reduce API response times and avoid rate-limiting issues.
@@ -57,6 +57,10 @@
 | GET | `/api/apod` | Fetch a random Astronomy Picture of the Day |
 | GET | `/api/gallery?category=nebulae` | Search NASA Images by category |
 | GET | `/api/history` | Past APODs from Supabase |
+
+#### Planned
+| Method | Endpoint | Description |
+|--------|----------|-------------|
 | GET | `/api/comments?topic=all` | Fetch anonymous community comments |
 | POST | `/api/comments` | Post an anonymous comment (`{ message, topic }`) |
 
