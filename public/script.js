@@ -33,12 +33,23 @@
   var $lbTitle    = document.getElementById('lightbox-title');
   var $lbDesc     = document.getElementById('lightbox-desc');
 
+  /* ── Community DOM ──────────────────────────────────── */
+  var $secComm    = document.getElementById('section-community');
+  var $compMsg    = document.getElementById('compose-message');
+  var $compTopic  = document.getElementById('compose-topic');
+  var $compChars  = document.getElementById('compose-chars');
+  var $btnPost    = document.getElementById('btn-post-comment');
+  var $commentFeed  = document.getElementById('comment-feed');
+  var $commentEmpty = document.getElementById('comment-empty');
+  var $filterChips  = document.querySelectorAll('.filter-chip');
+  var activeTopic = 'all';
+
   var activeTab = 'random';
 
   /* ── Helpers ─────────────────────────────────────────── */
   function show(el) { el.classList.remove('hidden'); }
   function hide(el) { el.classList.add('hidden'); }
-  function hideAll() { hide($loader); hide($error); hide($secApod); hide($secGal); hide($lightbox); }
+  function hideAll() { hide($loader); hide($error); hide($secApod); hide($secGal); hide($lightbox); hide($secComm); }
   function showLoader() { hideAll(); show($loader); }
   function showError(msg) { hideAll(); $errorMsg.textContent = msg; show($error); }
 
@@ -79,7 +90,11 @@
      ══════════════════════════════════════════════════════════ */
   function loadAPOD() {
     showLoader();
+    var expectedTab = activeTab;
     apiFetch('/api/apod').then(function (data) {
+      /* If user switched tabs while fetching, discard this response */
+      if (activeTab !== expectedTab) return;
+
       if (data.media_type === 'video') {
         $apodImg.src = data.image_url || '';
         $apodImg.alt = 'Video — see description';
@@ -103,6 +118,7 @@
       hideAll();
       show($secApod);
     }).catch(function (err) {
+      if (activeTab !== expectedTab) return;
       console.error('APOD:', err);
       showError(err.message || 'NASA APOD temporarily unavailable. Try the gallery tabs above!');
     });
@@ -159,13 +175,16 @@
     show($secGal);
     showSkeletons(8);
 
+    var expectedTab = activeTab;
     apiFetch('/api/gallery?category=' + encodeURIComponent(category)).then(function (images) {
+      if (activeTab !== expectedTab) return;
       $galCount.textContent = images.length + ' image' + (images.length !== 1 ? 's' : '');
       $galGrid.innerHTML = '';
       images.forEach(function (item, i) {
         $galGrid.appendChild(createCard(item, i));
       });
     }).catch(function (err) {
+      if (activeTab !== expectedTab) return;
       console.error('Gallery:', err);
       showError(err.message || 'Failed to load gallery. Try again.');
     });
@@ -196,6 +215,187 @@
   });
 
   /* ══════════════════════════════════════════════════════════
+     COMMUNITY — Anonymous Discussion
+     ══════════════════════════════════════════════════════════ */
+
+  /** Format a timestamp into a human-readable "time ago" string */
+  function timeAgo(dateStr) {
+    var now = Date.now();
+    var then = new Date(dateStr).getTime();
+    var diff = Math.max(0, now - then);
+    var seconds = Math.floor(diff / 1000);
+    if (seconds < 60) return 'just now';
+    var minutes = Math.floor(seconds / 60);
+    if (minutes < 60) return minutes + 'm ago';
+    var hours = Math.floor(minutes / 60);
+    if (hours < 24) return hours + 'h ago';
+    var days = Math.floor(hours / 24);
+    if (days < 30) return days + 'd ago';
+    var months = Math.floor(days / 30);
+    return months + 'mo ago';
+  }
+
+  /** Get initials from an alias like "Cosmic Voyager" → "CV" */
+  function getInitials(alias) {
+    var parts = (alias || '').split(' ');
+    if (parts.length >= 2) return parts[0][0] + parts[1][0];
+    return (alias || '?')[0];
+  }
+
+  /** Render a single comment card DOM element */
+  function createCommentCard(comment, highlight) {
+    var card = document.createElement('div');
+    card.className = 'comment-card';
+    if (highlight) card.className += ' just-posted';
+    card.style.animationDelay = '0ms';
+
+    var avatar = document.createElement('div');
+    avatar.className = 'comment-card__avatar';
+    avatar.style.background = comment.avatar_color || '#9E6DFF';
+    avatar.textContent = getInitials(comment.alias);
+
+    var body = document.createElement('div');
+    body.className = 'comment-card__body';
+
+    var meta = document.createElement('div');
+    meta.className = 'comment-card__meta';
+
+    var aliasEl = document.createElement('span');
+    aliasEl.className = 'comment-card__alias';
+    aliasEl.textContent = comment.alias;
+
+    var topicEl = document.createElement('span');
+    topicEl.className = 'comment-card__topic';
+    topicEl.textContent = comment.topic || 'general';
+
+    var timeEl = document.createElement('span');
+    timeEl.className = 'comment-card__time';
+    timeEl.textContent = timeAgo(comment.created_at);
+
+    meta.appendChild(aliasEl);
+    meta.appendChild(topicEl);
+    meta.appendChild(timeEl);
+
+    var msg = document.createElement('p');
+    msg.className = 'comment-card__message';
+    msg.textContent = comment.message;
+
+    body.appendChild(meta);
+    body.appendChild(msg);
+    card.appendChild(avatar);
+    card.appendChild(body);
+
+    return card;
+  }
+
+  /** Load comments from the API */
+  function loadComments(topic) {
+    var url = '/api/comments';
+    if (topic && topic !== 'all') url += '?topic=' + encodeURIComponent(topic);
+
+    $commentFeed.innerHTML = '';
+    hide($commentEmpty);
+
+    apiFetch(url).then(function (comments) {
+      if (!comments || comments.length === 0) {
+        show($commentEmpty);
+        return;
+      }
+      hide($commentEmpty);
+      comments.forEach(function (c, i) {
+        var card = createCommentCard(c, false);
+        card.style.animationDelay = (i * 40) + 'ms';
+        $commentFeed.appendChild(card);
+      });
+    }).catch(function (err) {
+      console.error('Comments:', err);
+      $commentFeed.innerHTML = '<p style="color: var(--clr-text-dim); text-align: center; padding: 2rem;">Could not load comments.</p>';
+    });
+  }
+
+  /** Post a new anonymous comment */
+  function postComment() {
+    var message = $compMsg.value.trim();
+    var topic = $compTopic.value;
+    if (!message || message.length < 2) return;
+
+    $btnPost.classList.add('sending');
+    $btnPost.textContent = 'Sending…';
+
+    fetch('/api/comments', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message: message, topic: topic }),
+    })
+    .then(function (res) { return res.json(); })
+    .then(function (json) {
+      $btnPost.classList.remove('sending');
+      $btnPost.textContent = 'Transmit';
+      if (!json.success) {
+        alert(json.error || 'Failed to post.');
+        return;
+      }
+      /* Prepend the new comment with a highlight */
+      var card = createCommentCard(json.data, true);
+      $commentFeed.insertBefore(card, $commentFeed.firstChild);
+      hide($commentEmpty);
+
+      /* Clear compose area */
+      $compMsg.value = '';
+      $compChars.textContent = '0 / 1000';
+      $compChars.className = 'compose__charcount';
+
+      /* Remove highlight after 3s */
+      setTimeout(function () { card.classList.remove('just-posted'); }, 3000);
+    })
+    .catch(function (err) {
+      console.error('Post error:', err);
+      $btnPost.classList.remove('sending');
+      $btnPost.textContent = 'Transmit';
+      alert('Network error. Try again.');
+    });
+  }
+
+  /* ── Community event listeners ──────────────────────── */
+  $btnPost.addEventListener('click', postComment);
+
+  /* Character counter */
+  $compMsg.addEventListener('input', function () {
+    var len = $compMsg.value.length;
+    $compChars.textContent = len + ' / 1000';
+    $compChars.className = 'compose__charcount';
+    if (len > 900) $compChars.classList.add('at-limit');
+    else if (len > 700) $compChars.classList.add('near-limit');
+  });
+
+  /* Ctrl+Enter to post */
+  $compMsg.addEventListener('keydown', function (e) {
+    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+      e.preventDefault();
+      postComment();
+    }
+  });
+
+  /* Topic filter chips */
+  $filterChips.forEach(function (chip) {
+    chip.addEventListener('click', function () {
+      var topic = chip.getAttribute('data-topic');
+      if (topic === activeTopic) return;
+      $filterChips.forEach(function (c) { c.classList.remove('active'); });
+      chip.classList.add('active');
+      activeTopic = topic;
+      loadComments(topic);
+    });
+  });
+
+  /** Show the community section */
+  function showCommunity() {
+    hideAll();
+    show($secComm);
+    loadComments(activeTopic);
+  }
+
+  /* ══════════════════════════════════════════════════════════
      TAB NAVIGATION
      ══════════════════════════════════════════════════════════ */
   $navTabs.forEach(function (btn) {
@@ -205,12 +405,16 @@
       $navTabs.forEach(function (b) { b.classList.remove('active'); });
       btn.classList.add('active');
       activeTab = tab;
-      if (tab === 'random') loadAPOD(); else loadGallery(tab);
+      if (tab === 'random') loadAPOD();
+      else if (tab === 'community') showCommunity();
+      else loadGallery(tab);
     });
   });
 
   $btnRetry.addEventListener('click', function () {
-    if (activeTab === 'random') loadAPOD(); else loadGallery(activeTab);
+    if (activeTab === 'random') loadAPOD();
+    else if (activeTab === 'community') showCommunity();
+    else loadGallery(activeTab);
   });
 
   if ($btnRandom) {

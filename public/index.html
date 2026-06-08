@@ -46,6 +46,9 @@
         <li>
           <button class="nav__tab" data-tab="planets" type="button">Planets</button>
         </li>
+        <li>
+          <button class="nav__tab" data-tab="community" type="button">Community</button>
+        </li>
       </ul>
     </div>
   </nav>
@@ -110,6 +113,63 @@
       </div>
 
       <div id="gallery-grid" class="gallery-grid"></div>
+    </section>
+
+    <!-- ═══ Community Discussion Section ═══ -->
+    <section id="section-community" class="section hidden" aria-label="Community Discussion">
+      <div class="community">
+        <div class="community__header">
+          <h2 class="community__title">Community</h2>
+          <p class="community__subtitle">Anonymous conversations about the cosmos. No accounts needed — just share your thoughts.</p>
+        </div>
+
+        <!-- Compose area -->
+        <div class="community__compose" id="compose-area">
+          <div class="compose__avatar" id="compose-avatar" aria-hidden="true">?</div>
+          <div class="compose__body">
+            <div class="compose__topic-row">
+              <label for="compose-topic" class="compose__label">Topic</label>
+              <select id="compose-topic" class="compose__select">
+                <option value="general">General</option>
+                <option value="apod">Picture of the Day</option>
+                <option value="galaxies">Galaxies</option>
+                <option value="nebulae">Nebulae</option>
+                <option value="planets">Planets</option>
+                <option value="stars">Stars</option>
+                <option value="constellations">Constellations</option>
+                <option value="questions">Questions</option>
+              </select>
+            </div>
+            <textarea id="compose-message" class="compose__textarea" placeholder="Share a thought about the universe…" maxlength="1000" rows="3"></textarea>
+            <div class="compose__footer">
+              <span id="compose-chars" class="compose__charcount">0 / 1000</span>
+              <button id="btn-post-comment" class="btn btn--accent" type="button">Transmit</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Filter bar -->
+        <div class="community__filters">
+          <button class="filter-chip active" data-topic="all" type="button">All</button>
+          <button class="filter-chip" data-topic="general" type="button">General</button>
+          <button class="filter-chip" data-topic="apod" type="button">APOD</button>
+          <button class="filter-chip" data-topic="galaxies" type="button">Galaxies</button>
+          <button class="filter-chip" data-topic="nebulae" type="button">Nebulae</button>
+          <button class="filter-chip" data-topic="planets" type="button">Planets</button>
+          <button class="filter-chip" data-topic="stars" type="button">Stars</button>
+          <button class="filter-chip" data-topic="questions" type="button">Questions</button>
+        </div>
+
+        <!-- Comment feed -->
+        <div id="comment-feed" class="community__feed">
+          <!-- comments rendered here -->
+        </div>
+
+        <div id="comment-empty" class="community__empty hidden">
+          <span class="community__empty-icon">✦</span>
+          <p>No transmissions yet. Be the first to share your thoughts.</p>
+        </div>
+      </div>
     </section>
 
     <!-- ═══ Lightbox / Detail Modal ═══ -->

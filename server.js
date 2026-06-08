@@ -180,6 +180,73 @@ app.get('/api/history', async function (_req, res) {
   }
 });
 
+/* ══ Anonymous Community Comments ═════════════════════════ */
+
+var SPACE_ADJECTIVES = [
+  'Cosmic', 'Stellar', 'Lunar', 'Solar', 'Astral', 'Nebular', 'Orbital',
+  'Galactic', 'Quantum', 'Radiant', 'Celestial', 'Ethereal', 'Magnetic',
+  'Blazing', 'Drifting', 'Silent', 'Phantom', 'Crimson', 'Frozen', 'Ancient',
+];
+var SPACE_NOUNS = [
+  'Voyager', 'Comet', 'Pulsar', 'Quasar', 'Photon', 'Meteor', 'Rover',
+  'Pioneer', 'Eclipse', 'Horizon', 'Nova', 'Orbit', 'Zenith', 'Cosmos',
+  'Nebula', 'Aurora', 'Stargazer', 'Observer', 'Wanderer', 'Dreamer',
+];
+var AVATAR_COLORS = [
+  '#9E6DFF', '#5C72FF', '#00E5FF', '#0072FF', '#FFB347',
+  '#FF7B89', '#E248B5', '#4AE0E0', '#7C6AFF', '#E06AAF',
+];
+
+function randomAlias() {
+  var adj = SPACE_ADJECTIVES[Math.floor(Math.random() * SPACE_ADJECTIVES.length)];
+  var noun = SPACE_NOUNS[Math.floor(Math.random() * SPACE_NOUNS.length)];
+  return adj + ' ' + noun;
+}
+
+/** GET /api/comments — Fetch latest anonymous comments */
+app.get('/api/comments', async function (req, res) {
+  try {
+    var topic = req.query.topic || null;
+    var query = supabase
+      .from('comments')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(50);
+    if (topic && topic !== 'all') query = query.eq('topic', topic);
+    var result = await query;
+    if (result.error) throw result.error;
+    res.json({ success: true, data: result.data });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+/** POST /api/comments — Post an anonymous comment */
+app.post('/api/comments', async function (req, res) {
+  try {
+    var message = (req.body.message || '').trim();
+    var topic = (req.body.topic || 'general').trim().toLowerCase();
+    if (!message || message.length < 2) {
+      return res.status(400).json({ success: false, error: 'Message too short.' });
+    }
+    if (message.length > 1000) {
+      return res.status(400).json({ success: false, error: 'Message too long (max 1000 chars).' });
+    }
+    var alias = randomAlias();
+    var avatarColor = AVATAR_COLORS[Math.floor(Math.random() * AVATAR_COLORS.length)];
+    var result = await supabase.from('comments').insert({
+      alias: alias,
+      avatar_color: avatarColor,
+      message: message,
+      topic: topic,
+    }).select();
+    if (result.error) throw result.error;
+    res.json({ success: true, data: result.data[0] });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 /* Catch-all */
 app.get('*', function (_req, res) {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));

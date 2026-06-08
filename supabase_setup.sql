@@ -32,3 +32,28 @@ CREATE POLICY "Allow insert"
 DROP POLICY IF EXISTS "Allow update" ON apod_history;
 CREATE POLICY "Allow update"
   ON apod_history FOR UPDATE USING (true);
+
+-- ╔══════════════════════════════════════════════════════════════════╗
+-- ║  Anonymous Community Comments Table                            ║
+-- ╚══════════════════════════════════════════════════════════════════╝
+
+CREATE TABLE IF NOT EXISTS comments (
+  id            BIGSERIAL    PRIMARY KEY,
+  alias         TEXT         NOT NULL DEFAULT 'Stargazer',
+  avatar_color  TEXT         NOT NULL DEFAULT '#9E6DFF',
+  message       TEXT         NOT NULL,
+  topic         TEXT         DEFAULT 'general',
+  created_at    TIMESTAMPTZ  DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_comments_created ON comments (created_at DESC);
+
+ALTER TABLE comments ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Allow public read comments" ON comments;
+CREATE POLICY "Allow public read comments"
+  ON comments FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Allow public insert comments" ON comments;
+CREATE POLICY "Allow public insert comments"
+  ON comments FOR INSERT WITH CHECK (true);
